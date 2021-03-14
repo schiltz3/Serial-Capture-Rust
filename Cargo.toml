@@ -12,3 +12,4 @@ structopt = "0.3"
 #clap = "2.33.3" #Command line argument parser
 dialoguer = "0.7" #Command line prompts and menues etc
 console = "0.14"
+enum-iterator = "0.6"
