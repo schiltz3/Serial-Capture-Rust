@@ -7,9 +7,11 @@ use dialoguer::{
 use console::Term;
 use std::format;
 use enum_iterator::IntoEnumIterator;
+use std::fs::File;
 
-#[derive(StructOpt, Debug)]
-struct Opt{
+//
+#[derive(StructOpt, Debug)] 
+struct Args{
     // a flag, true if used in the command line
 
     #[structopt(short, long)]
@@ -20,42 +22,86 @@ struct Opt{
     verbose: u8,
 
     // Select Serial port
-    #[structopt(short = "p", long = "port")]
+    #[structopt(short = "p", long = "port", requires = "baud")]
     port: Option<String>,
 
+    #[structopt(short = "b", long = "baud", requires = "port")]
+    baud: Option<u8>,
+
     // Select config file
-    #[structopt(short = "c", long = "config", parse(from_os_str))]
-    config_file: Option<PathBuf>,
+    #[structopt(short = "c", long = "config", parse(from_os_str), default_value = "config.yaml")]
+    config_file: PathBuf,
     //
     // Output file
-    #[structopt(short = "o", long = "output", parse(from_os_str))]
-    output: Option<PathBuf>,
+    #[structopt(short = "o", long = "output", parse(from_os_str), default_value = "output.csv")]
+    output_file: PathBuf,
+}
+
+// Takes upened file and writes standard config info to it.
+fn create_config(output: File) -> File{
+  //todo put in yaml code to make basic config  
+    println!("Create_config");
+    output
+}
+
+fn is_valid_config(config: File) -> bool{
+
+    false
 }
 
 fn main() -> std::io::Result<()>{
 
     let term = Term::stdout();
-    let opt = Opt::from_args();
+    let args = Args::from_args();
 
-    //println!("{:#?}", opt);
+    // Open/create config file
+    let config = match File::open(&args.config_file) {
+        Ok(config) => {
+            print!("OK");
+            config
+        }
+        Err(_) => {
+            File::create(&args.config_file)?;
+            //create_config(File::open(&args.config_file)?)
+            File::open(&args.config_file).map(create_config)?
+        }
+        //set config menue flag
+    };
 
-    term.clear_screen()?;
+    // Open/create output file
+    let output_file = match File::open(&args.output_file) {
+        Ok(output) => output,
+        Err(_) => File::create(&args.output_file)?,
+    };
+
+    //println!("{:#?}", args);
+
+    //term.clear_screen()?;
     term.set_title("Serial logger");
 
-    let opt_str = format!("{:#?}", opt);
-    term.write_line(&opt_str)?;
+    if !is_valid_config(config) {
+        term.write_line("Enter Port info")?;
+        make_config(&term)?;
+    }
+    //let opt_str = format!("{:#?}", args);
+    // write debug macro
+    // term.write_line(&opt_str)?;
 
 
-    let selection = Select::with_theme(&ColorfulTheme::default())
+
+
+    let selection = Select::with_theme(&ColorfulTheme::default()).default(0)
+        .item(format!("Run with current config: {}", args.config_file.to_str().unwrap()))
         .item("Inport config file")
-        .item("Create config file")
+        .item("Edit config file")
         .interact()?;
     //replace with match statement
     println!("\"More usefull text\t\"{}", selection);
 
     match selection {
-        0 => import_config(),
-        1 => make_config(term)?,
+        0 => import_config(false),
+        1 => import_config(true),
+        2 => make_config(&term)?,
         _ => unreachable!("Out of menue"),
     }
 
@@ -120,21 +166,21 @@ impl Options{
 
     fn update_state(options: usize, state: &mut State, term: &Term) -> bool{
         if options == Self::Port as usize{
-                term.write_line("Enter port name: ");
-                term.move_cursor_up(1);
-                term.move_cursor_right(17);
+                term.write_line("Enter port name: ").ok();
+                term.move_cursor_up(1).ok();
+                term.move_cursor_right(17).ok();
                 state.port = term.read_line().ok();
         }
         else if options == Self::Baud as usize{
-                term.write_line("Enter Baud Rate: ");
-                term.move_cursor_up(1);
-                term.move_cursor_right(17);
+                term.write_line("Enter Baud Rate: ").ok();
+                term.move_cursor_up(1).ok();
+                term.move_cursor_right(17).ok();
                 state.baud = term.read_line().ok();
         }
         else if options == Self::File as usize{
-                term.write_line("Enter File Path: ");
-                term.move_cursor_up(1);
-                term.move_cursor_right(17);
+                term.write_line("Enter File Path: ").ok();
+                term.move_cursor_up(1).ok();
+                term.move_cursor_right(17).ok();
                 state.file = term.read_line().ok();
         }
         else if options == Self::Exit as usize{return false;}
@@ -143,7 +189,7 @@ impl Options{
     }
 }
 
-fn make_config(term: Term) -> std::io::Result<()>{
+fn make_config(term: &Term) -> std::io::Result<()>{
 
     let mut state = State::default();
 
@@ -201,6 +247,7 @@ fn make_config(term: Term) -> std::io::Result<()>{
     Ok(())
 }
 
-fn import_config(){
+fn import_config(default: bool){
 
 }
+
