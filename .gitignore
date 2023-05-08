@@ -1,3 +1,7 @@
 /target
 output.csv
 
+
+Cargo.lock
+
+log.txt
