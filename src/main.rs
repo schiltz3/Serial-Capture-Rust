@@ -5,6 +5,9 @@ use dialoguer::{
     Select,
 };
 use log::{error, info};
+use simplelog::{
+    ColorChoice, CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode, WriteLogger,
+};
 use std::{format, fs::File, path::PathBuf};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -33,6 +36,9 @@ struct Args {
     // Output file
     #[arg(short, long = "output", default_value = "output.csv")]
     output_file: PathBuf,
+
+    #[arg(short, long = "log-file", default_value = "log.txt")]
+    log_file: PathBuf,
 }
 
 // Takes upened file and writes standard config info to it.
@@ -49,6 +55,20 @@ fn is_valid_config(config: File) -> bool {
 fn main() -> std::io::Result<()> {
     let term = Term::stdout();
     let args = Args::parse();
+    CombinedLogger::init(vec![
+        TermLogger::new(
+            args.verbose.log_level_filter(),
+            Config::default(),
+            TerminalMode::Mixed,
+            ColorChoice::Auto,
+        ),
+        WriteLogger::new(
+            LevelFilter::Info,
+            Config::default(),
+            File::create(&args.log_file).unwrap(),
+        ),
+    ])
+    .unwrap();
 
     // Open/create config file
     let config = match File::open(&args.config_file) {
